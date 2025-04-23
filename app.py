@@ -103,27 +103,69 @@ with st.form("input_form"):
     freq_value = st.number_input(f"🔁 Frequency Cap per {freq_option}", value=2.0)
 
     submitted = st.form_submit_button("📣 Predict")
-
+    
 if submitted:
-    freq_cap = calculate_frequency_cap(freq_value, freq_option, flight_period)
+    # Calculate frequency cap
+    freq_cap = calculate_frequency_cap(freq_cap_input, freq_cap_unit, flight_period)
 
-    rf_reach, rf_freq, gam_reach, gam_freq = predict_metrics(
-        impressions, audience_size, flight_period, freq_cap
-    )
+    # Log-transform input
+    log_input = pd.DataFrame([[
+        np.log1p(impressions),
+        np.log1p(audience_size),
+        np.log1p(flight_period),
+        np.log1p(freq_cap)
+    ]], columns=['Log_Impressions', 'Log_Audience', 'Log_Flight', 'Log_Frequency Cap Per Flight'])
 
-    st.success("✅ Predictions Complete")
-    st.markdown("---")
+    # Predict in log space
+    log_rf_reach = rf_reach.predict(log_input)[0]
+    log_rf_freq = rf_freq.predict(log_input)[0]
+    log_gam_reach = gam_reach.predict(log_input)[0]
+    log_gam_freq = gam_freq.predict(log_input)[0]
 
+    # Convert back from log scale
+    pred_rf_reach = np.expm1(log_rf_reach)
+    pred_rf_freq = np.expm1(log_rf_freq)
+    pred_gam_reach = np.expm1(log_gam_reach)
+    pred_gam_freq = np.expm1(log_gam_freq)
+
+    # Calculated frequency (Impressions / Reach)
+    calc_rf_freq = impressions / pred_rf_reach if pred_rf_reach != 0 else 0
+    calc_gam_freq = impressions / pred_gam_reach if pred_gam_reach != 0 else 0
+
+    # Display results
+    st.subheader("🔮 Predictions")
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("🌲 Random Forest Model")
-        st.metric("Predicted Reach", f"{rf_reach:,.0f}")
-        st.metric("Predicted Frequency", f"{rf_freq:.2f}")
-        st.metric("Calculated Frequency", f"{impressions / rf_reach:.2f}")
+        st.markdown("### 🌲 Random Forest")
+        st.metric("Predicted Reach", f"{pred_rf_reach:,.0f}")
+        st.metric("Predicted Frequency", f"{pred_rf_freq:.2f}")
+        st.metric("Calculated Frequency", f"{calc_rf_freq:.2f}")
 
     with col2:
-        st.subheader("📈 GAM Model")
-        st.metric("Predicted Reach", f"{gam_reach:,.0f}")
-        st.metric("Predicted Frequency", f"{gam_freq:.2f}")
-        st.metric("Calculated Frequency", f"{impressions / gam_reach:.2f}")
+        st.markdown("### 🌀 GAM Model")
+        st.metric("Predicted Reach", f"{pred_gam_reach:,.0f}")
+        st.metric("Predicted Frequency", f"{pred_gam_freq:.2f}")
+        st.metric("Calculated Frequency", f"{calc_gam_freq:.2f}")
+
+    # Optional debug info
+    with st.expander("🐞 Debug Info"):
+        st.write("Raw Inputs:")
+        st.json({
+            "Impressions": impressions,
+            "Audience Size": audience_size,
+            "Flight Period": flight_period,
+            "Frequency Cap": freq_cap,
+            "Cap Unit": freq_cap_unit
+        })
+
+        st.write("Log Inputs to Model:")
+        st.dataframe(log_input)
+
+        st.write("Raw Model Outputs (log-space):")
+        st.json({
+            "RF Reach (log)": float(log_rf_reach),
+            "RF Freq (log)": float(log_rf_freq),
+            "GAM Reach (log)": float(log_gam_reach),
+            "GAM Freq (log)": float(log_gam_freq)
+        })
