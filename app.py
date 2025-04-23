@@ -91,18 +91,18 @@ def predict_metrics(impressions, audience_size, flight_period, frequency_cap):
 # --- App UI ---
 st.title("📊 Reach & Frequency Predictor")
 
-with st.form("input_form"):
-    impressions = st.number_input("📈 Impression Volume", value=100000)
-    audience_size = st.number_input("👥 Audience Size", value=50000)
-    flight_period = st.number_input("📅 Flight Period (in days)", value=30)
+# --- User Inputs ---
+st.markdown("## 📥 Enter Campaign Details")
 
-    freq_option = st.selectbox(
-        "⏱️ Frequency Cap Type",
-        options=["Day", "Week", "Month", "Life"]
-    )
-    freq_value = st.number_input(f"🔁 Frequency Cap per {freq_option}", value=2.0)
+impressions = st.number_input("Impressions", min_value=1000, max_value=1_000_000_000, step=1000, value=100000)
+audience_size = st.number_input("Audience Size", min_value=1000, max_value=1_000_000_000, step=1000, value=250000)
+flight_period = st.number_input("Flight Period (in days)", min_value=1, max_value=365, value=30)
 
-    submitted = st.form_submit_button("📣 Predict")
+freq_cap_input = st.number_input("Frequency Cap Value", min_value=1.0, max_value=50.0, step=0.1, value=3.0)
+freq_cap_unit = st.selectbox("Frequency Cap Unit", ["Day", "Week", "Month", "Life"], index=1)
+
+submitted = st.button("🔮 Predict")
+
     
 if submitted:
     # Calculate frequency cap
