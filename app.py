@@ -8,8 +8,8 @@ from pygam import LinearGAM, s
 import base64
 
 # --- Logo ---
-st.set_page_config(page_title="Reach & Frequency Predictor", page_icon="📊")
-st.image("logo.png", width=180)
+# st.set_page_config(page_title="Reach & Frequency Predictor", page_icon="📊")
+# st.image("logo.png", width=180)
 
 # --- Load and preprocess data ---
 @st.cache_data
