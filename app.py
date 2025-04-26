@@ -8,7 +8,7 @@ import math
 # --- Load and Prepare Data ---
 @st.cache_data
 def load_data():
-    df = pd.read_excel(r"C:\Users\paris\Downloads\CombinedDataV3.xlsx", sheet_name='CombinedData')
+    df = pd.read_excel(r"CombinedDataV3.xlsx", sheet_name='CombinedData')
 
     # Clean columns
     df.columns = [col.strip() for col in df.columns]
