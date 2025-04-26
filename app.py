@@ -120,10 +120,13 @@ st.divider()
 st.header("📅 Flight Period")
 col5, col6 = st.columns(2)
 
+today = date.today()
+default_end = today + pd.Timedelta(days=29)  # 30 total days including today
+
 with col5:
-    start_date = st.date_input("Start Date", date.today())
+    start_date = st.date_input("Start Date", today)
 with col6:
-    end_date = st.date_input("End Date", date.today())
+    end_date = st.date_input("End Date", default_end)
 
 if start_date > end_date:
     st.error("Start Date must be before End Date!")
@@ -135,8 +138,13 @@ else:
 st.divider()
 
 # --- Prediction Buttons ---
-calculate = st.button("🔮 Calculate Predictions")
-reset = st.button("🔁 Reset Inputs")
+col7, col8 = st.columns([3, 1])
+
+with col7:
+    calculate = st.button("🔮 Calculate Predictions")
+with col8:
+    reset = st.button("🔁 Reset Inputs")
+
 
 # --- Logic ---
 if reset:
