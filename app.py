@@ -7,7 +7,8 @@ import math
 
 st.set_page_config(page_title="Reach & Frequency Predictor", layout="centered")
 
-def load_and_prepare_data():
+@st.cache_resource(show_spinner=False)
+def load_and_train_models():
     df = pd.read_excel("CombinedDataV3.xlsx", sheet_name="CombinedData")
     df.columns = [col.strip() for col in df.columns]
     df = df.dropna(subset=['Impressions', 'Flight Period', 'Reach', 'Audience Size', 'Frequency', 'Frequency Cap Per Flight'])
@@ -24,9 +25,6 @@ def load_and_prepare_data():
     df['Log_Frequency'] = np.log1p(df['Frequency'])
     df['Log_Frequency Cap Per Flight'] = np.log1p(df['Frequency Cap Per Flight'])
 
-    return df
-
-def train_models(df):
     X = df[['Log_Impressions', 'Log_Audience', 'Log_Flight', 'Log_Frequency Cap Per Flight']]
     y_reach = df['Log_Reach']
     y_frequency = df['Log_Frequency']
@@ -37,8 +35,8 @@ def train_models(df):
     freq_model_rf = RandomForestRegressor(n_estimators=500, random_state=42)
     freq_model_rf.fit(X, y_frequency)
 
-    gam_reach = LinearGAM(s(0) + s(1) + s(2) + s(3)).fit(X, y_reach)
-    gam_freq = LinearGAM(s(0) + s(1) + s(2) + s(3)).fit(X, y_frequency)
+    gam_reach = LinearGAM(s(0) + s(1) + s(2) + s(3), verbose=False).fit(X, y_reach)
+    gam_freq = LinearGAM(s(0) + s(1) + s(2) + s(3), verbose=False).fit(X, y_frequency)
 
     return reach_model_rf, freq_model_rf, gam_reach, gam_freq
 
@@ -54,12 +52,7 @@ def calculate_frequency_cap(frequency_input, option, flight_period):
     else:
         raise ValueError("Invalid option for frequency cap input.")
 
-def predict_metrics(impressions, audience_size, flight_period, frequency_input, option):
-    df = load_and_prepare_data()
-    reach_model_rf, freq_model_rf, gam_reach, gam_freq = train_models(df)
-
-    frequency_cap = calculate_frequency_cap(frequency_input, option, flight_period)
-
+def predict_metrics(impressions, audience_size, flight_period, frequency_cap):
     log_impressions = np.log1p(impressions)
     log_audience = np.log1p(audience_size)
     log_flight = np.log1p(flight_period)
@@ -70,15 +63,17 @@ def predict_metrics(impressions, audience_size, flight_period, frequency_input, 
         columns=['Log_Impressions', 'Log_Audience', 'Log_Flight', 'Log_Frequency Cap Per Flight']
     )
 
-    # Make predictions
+    reach_model_rf, freq_model_rf, gam_reach, gam_freq = load_and_train_models()
+
     log_predicted_reach_rf = reach_model_rf.predict(input_data)[0]
     log_predicted_freq_rf = freq_model_rf.predict(input_data)[0]
+
     log_predicted_reach_gam = gam_reach.predict(input_data)[0]
     log_predicted_freq_gam = gam_freq.predict(input_data)[0]
 
-    # Reverse log transformation
     predicted_reach_rf = np.expm1(log_predicted_reach_rf)
     predicted_frequency_rf = np.expm1(log_predicted_freq_rf)
+
     predicted_reach_gam = np.expm1(log_predicted_reach_gam)
     predicted_frequency_gam = np.expm1(log_predicted_freq_gam)
 
@@ -94,8 +89,10 @@ frequency_input = st.number_input("Frequency Cap per Unit", min_value=1.0, value
 option = st.selectbox("Frequency Cap Unit", ["Day", "Week", "Month", "Life"], index=0)
 
 if st.button("Predict"):
+    frequency_cap = calculate_frequency_cap(frequency_input, option, flight_period)
+
     rf_reach, rf_freq, gam_reach, gam_freq = predict_metrics(
-        impressions, audience_size, flight_period, frequency_input, option
+        impressions, audience_size, flight_period, frequency_cap
     )
 
     st.subheader("Predictions")
