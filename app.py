@@ -99,9 +99,21 @@ st.header("📊 Campaign Inputs")
 col1, col2 = st.columns(2)
 
 with col1:
-    impressions = st.number_input("Impression Volume", min_value=0, value=5_000_000, step=10000)
+    impressions = st.number_input(
+        "Impression Volume",
+        min_value=0,
+        value=5_000_000,
+        step=10000,
+        help="Total number of ad impressions your campaign will deliver."
+    )
 with col2:
-    audience_size = st.number_input("Audience Size", min_value=0, value=1_000_000, step=10000)
+    audience_size = st.number_input(
+        "Audience Size",
+        min_value=0,
+        value=1_000_000,
+        step=10000,
+        help="Size of the audience you're targeting."
+    )
 
 st.divider()
 
@@ -110,9 +122,19 @@ st.header("🎯 Frequency Settings")
 col3, col4 = st.columns(2)
 
 with col3:
-    freq_cap_type = st.selectbox("Frequency Cap Type", ["Day", "Week", "Month", "Life"])
+    freq_cap_type = st.selectbox(
+        "Frequency Cap Type",
+        ["Day", "Week", "Month", "Life"],
+        help="Unit of frequency restriction (per day, per week, per month, or lifetime)."
+    )
 with col4:
-    frequency_input = st.number_input("Frequency Cap Value", min_value=0.0, value=3.0, step=0.5)
+    frequency_input = st.number_input(
+        "Frequency Cap Value",
+        min_value=0.0,
+        value=3.0,
+        step=0.5,
+        help="Maximum number of times an ad is shown to the same person per selected time unit."
+    )
 
 st.divider()
 
@@ -121,12 +143,20 @@ st.header("📅 Flight Period")
 col5, col6 = st.columns(2)
 
 today = date.today()
-default_end = today + pd.Timedelta(days=29)  # 30 total days including today
+default_end = today + pd.Timedelta(days=29)
 
 with col5:
-    start_date = st.date_input("Start Date", today)
+    start_date = st.date_input(
+        "Start Date",
+        today,
+        help="Select your campaign's start date."
+    )
 with col6:
-    end_date = st.date_input("End Date", default_end)
+    end_date = st.date_input(
+        "End Date",
+        default_end,
+        help="Select your campaign's end date."
+    )
 
 if start_date > end_date:
     st.error("Start Date must be before End Date!")
@@ -135,7 +165,6 @@ else:
     flight_period_days = (end_date - start_date).days + 1
     st.success(f"📅 Campaign Length: {flight_period_days} days")
 
-st.divider()
 
 # --- Prediction Buttons ---
 col7, col8 = st.columns([3, 1])
