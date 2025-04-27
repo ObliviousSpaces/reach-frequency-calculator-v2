@@ -142,15 +142,33 @@ col7, col8 = st.columns([3, 1])
 
 with col7:
     calculate = st.button("🔮 Calculate Predictions")
-with col8:
-    reset = st.button("🔁 Reset Inputs")
 
+with col8:
+    reset_html = """
+    <style>
+    div.stButton > button:first-child {
+        background-color: white;
+        color: black;
+        border: 1px solid #ccc;
+        padding: 0.5em 1em;
+        font-size: 0.9em;
+    }
+    div.stButton > button:first-child:hover {
+        border: 1px solid #999;
+        color: #007BFF;
+    }
+    </style>
+    """
+    reset_clicked = st.button("🔁 Reset Inputs")
+    st.markdown(reset_html, unsafe_allow_html=True)
 
 # --- Logic ---
-if reset:
+if reset_clicked:
     st.rerun()
 
 if calculate:
+    ...
+
     if impressions > 0 and audience_size > 0 and flight_period_days > 0:
         frequency_cap = calculate_frequency_cap(frequency_input, freq_cap_type, flight_period_days)
 
