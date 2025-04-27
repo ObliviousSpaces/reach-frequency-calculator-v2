@@ -205,8 +205,7 @@ if calculate:
         calculated_frequency_rf = impressions / predicted_reach_rf if predicted_reach_rf else 0
         calculated_frequency_gam = impressions / predicted_reach_gam if predicted_reach_gam else 0
 
-        st.success("✅ Predictions complete!")
-        st.balloons()
+        st.success("Predictions generated successfully.")
 
         # Results
         st.header("📈 Prediction Results")
