@@ -77,7 +77,6 @@ def predict_metrics(impressions, audience_size, flight_period, frequency_cap, mo
 
     input_scaled = scaler.transform(input_data)
 
-    # Predictions
     log_predicted_reach_rf = reach_model_rf.predict(input_data)[0]
     log_predicted_freq_rf = freq_model_rf.predict(input_data)[0]
     log_predicted_reach_gam = gam_reach.predict(input_data)[0]
@@ -103,105 +102,52 @@ with st.spinner('Loading data and training models...'):
     models = train_models(df)
 st.success('Models ready!')
 
-# --- UI Layout ---
-
-# Section 1: Campaign Inputs
-st.header("\ud83d\udcca Campaign Inputs")
+st.header("📊 Campaign Inputs")
 col1, col2 = st.columns(2)
 
 with col1:
-    impressions = st.number_input(
-        "Impression Volume",
-        min_value=0,
-        value=5_000_000,
-        step=10000,
-        help="Total number of ad impressions your campaign will deliver."
-    )
+    impressions = st.number_input("Impression Volume", min_value=0, value=5_000_000, step=10000)
 with col2:
-    audience_size = st.number_input(
-        "Audience Size",
-        min_value=0,
-        value=1_000_000,
-        step=10000,
-        help="Size of the audience you're targeting."
-    )
+    audience_size = st.number_input("Audience Size", min_value=0, value=1_000_000, step=10000)
 
 st.divider()
 
-# Section 2: Frequency Cap
-st.header("\ud83c\udfaf Frequency Settings")
+st.header("🎯 Frequency Settings")
 col3, col4 = st.columns(2)
 
 with col3:
-    freq_cap_type = st.selectbox(
-        "Frequency Cap Type",
-        ["Day", "Week", "Month", "Life"],
-        help="Unit of frequency restriction (per day, per week, per month, or lifetime)."
-    )
+    freq_cap_type = st.selectbox("Frequency Cap Type", ["Day", "Week", "Month", "Life"])
 with col4:
-    frequency_input = st.number_input(
-        "Frequency Cap Value",
-        min_value=0.0,
-        value=3.0,
-        step=0.5,
-        help="Maximum number of times an ad is shown to the same person per selected time unit."
-    )
+    frequency_input = st.number_input("Frequency Cap Value", min_value=0.0, value=3.0, step=0.5)
 
 st.divider()
 
-# Section 3: Flight Period (Date Picker)
-st.header("\ud83d\uddd3\ufe0f Flight Period")
+st.header("📅 Flight Period")
 col5, col6 = st.columns(2)
 
 today = date.today()
 default_end = today + pd.Timedelta(days=29)
 
 with col5:
-    start_date = st.date_input(
-        "Start Date",
-        today,
-        help="Select your campaign's start date."
-    )
+    start_date = st.date_input("Start Date", today)
 with col6:
-    end_date = st.date_input(
-        "End Date",
-        default_end,
-        help="Select your campaign's end date."
-    )
+    end_date = st.date_input("End Date", default_end)
 
 if start_date > end_date:
     st.error("Start Date must be before End Date!")
     flight_period_days = 0
 else:
     flight_period_days = (end_date - start_date).days + 1
-    st.success(f"\ud83d\uddd3\ufe0f Campaign Length: {flight_period_days} days")
+    st.success(f"📅 Campaign Length: {flight_period_days} days")
 
-# --- Prediction Buttons ---
 col7, col8 = st.columns([3, 1])
 
 with col7:
-    calculate = st.button("\ud83d\udd2e Calculate Predictions")
+    calculate = st.button("🔮 Calculate Predictions")
 
 with col8:
-    reset_html = """
-    <style>
-    div.stButton > button:first-child {
-        background-color: white;
-        color: black;
-        border: 1px solid #ccc;
-        padding: 0.5em 1em;
-        font-size: 0.9em;
-    }
-    div.stButton > button:first-child:hover {
-        border: 1px solid #999;
-        color: #007BFF;
-    }
-    </style>
-    """
-    reset_clicked = st.button("\ud83d\udd01 Reset Inputs")
-    st.markdown(reset_html, unsafe_allow_html=True)
+    reset_clicked = st.button("🔁 Reset Inputs")
 
-# --- Logic ---
 if reset_clicked:
     st.rerun()
 
@@ -209,8 +155,9 @@ if calculate:
     if impressions > 0 and audience_size > 0 and flight_period_days > 0:
         frequency_cap = calculate_frequency_cap(frequency_input, freq_cap_type, flight_period_days)
 
-        predicted_reach_rf, predicted_frequency_rf, predicted_reach_gam, predicted_frequency_gam, predicted_reach_svm, predicted_frequency_svm = \
-            predict_metrics(impressions, audience_size, flight_period_days, frequency_cap, models)
+        predicted_reach_rf, predicted_frequency_rf, predicted_reach_gam, predicted_frequency_gam, predicted_reach_svm, predicted_frequency_svm = predict_metrics(
+            impressions, audience_size, flight_period_days, frequency_cap, models
+        )
 
         calculated_frequency_rf = impressions / predicted_reach_rf if predicted_reach_rf else 0
         calculated_frequency_gam = impressions / predicted_reach_gam if predicted_reach_gam else 0
@@ -218,9 +165,8 @@ if calculate:
 
         st.success("Predictions generated successfully.")
 
-        # Results
-        st.header("\ud83d\udcca Prediction Results")
-        tab1, tab2, tab3 = st.tabs(["\ud83c\udf32 Random Forest", "\ud83c\udfaf GAM Model", "\ud83e\uddd0 SVM Model"])
+        st.header("📈 Prediction Results")
+        tab1, tab2, tab3 = st.tabs(["🌲 Random Forest", "🎯 GAM Model", "🧠 SVM Model"])
 
         with tab1:
             st.metric("Predicted Reach", f"{predicted_reach_rf:,.2f}")
