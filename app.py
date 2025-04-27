@@ -4,6 +4,8 @@ import numpy as np
 import math
 from sklearn.ensemble import RandomForestRegressor
 from pygam import LinearGAM, s
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
 from datetime import date
 
 # --- Load and Prepare Data ---
@@ -37,7 +39,16 @@ def train_models(df):
     gam_reach = LinearGAM(s(0) + s(1) + s(2) + s(3)).fit(X, y_reach)
     gam_freq = LinearGAM(s(0) + s(1) + s(2) + s(3)).fit(X, y_frequency)
 
-    return reach_model_rf, freq_model_rf, gam_reach, gam_freq
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    reach_model_svm = SVR(kernel='rbf', C=10.0, epsilon=0.01)
+    reach_model_svm.fit(X_scaled, y_reach)
+
+    freq_model_svm = SVR(kernel='rbf', C=10.0, epsilon=0.01)
+    freq_model_svm.fit(X_scaled, y_frequency)
+
+    return reach_model_rf, freq_model_rf, gam_reach, gam_freq, reach_model_svm, freq_model_svm, scaler
 
 def calculate_frequency_cap(frequency_input, option, flight_period):
     if option == "Day":
@@ -52,36 +63,36 @@ def calculate_frequency_cap(frequency_input, option, flight_period):
         raise ValueError("Invalid frequency cap option.")
 
 def predict_metrics(impressions, audience_size, flight_period, frequency_cap, models):
-    reach_model_rf, freq_model_rf, gam_reach, gam_freq = models
+    reach_model_rf, freq_model_rf, gam_reach, gam_freq, reach_model_svm, freq_model_svm, scaler = models
 
     log_impressions = np.log1p(impressions)
     log_audience = np.log1p(audience_size)
     log_flight = np.log1p(flight_period)
     log_frequency_cap = np.log1p(frequency_cap)
 
-    # Uncomment these lines if you want debugging
-    # st.write("🔎 Log-transformed Inputs:")
-    # st.write(f"log_impressions = {log_impressions}")
-    # st.write(f"log_audience = {log_audience}")
-    # st.write(f"log_flight = {log_flight}")
-    # st.write(f"log_frequency_cap = {log_frequency_cap}")
-
     input_data = pd.DataFrame(
         [[log_impressions, log_audience, log_flight, log_frequency_cap]],
         columns=['Log_Impressions', 'Log_Audience', 'Log_Flight', 'Log_Frequency Cap Per Flight']
     )
 
+    input_scaled = scaler.transform(input_data)
+
+    # Predictions
     log_predicted_reach_rf = reach_model_rf.predict(input_data)[0]
     log_predicted_freq_rf = freq_model_rf.predict(input_data)[0]
     log_predicted_reach_gam = gam_reach.predict(input_data)[0]
     log_predicted_freq_gam = gam_freq.predict(input_data)[0]
+    log_predicted_reach_svm = reach_model_svm.predict(input_scaled)[0]
+    log_predicted_freq_svm = freq_model_svm.predict(input_scaled)[0]
 
     predicted_reach_rf = np.expm1(log_predicted_reach_rf)
     predicted_frequency_rf = np.expm1(log_predicted_freq_rf)
     predicted_reach_gam = np.expm1(log_predicted_reach_gam)
     predicted_frequency_gam = np.expm1(log_predicted_freq_gam)
+    predicted_reach_svm = np.expm1(log_predicted_reach_svm)
+    predicted_frequency_svm = np.expm1(log_predicted_freq_svm)
 
-    return predicted_reach_rf, predicted_frequency_rf, predicted_reach_gam, predicted_frequency_gam
+    return predicted_reach_rf, predicted_frequency_rf, predicted_reach_gam, predicted_frequency_gam, predicted_reach_svm, predicted_frequency_svm
 
 # --- Streamlit App ---
 st.set_page_config(page_title="Reach & Frequency Predictor", layout="centered")
@@ -95,7 +106,7 @@ st.success('Models ready!')
 # --- UI Layout ---
 
 # Section 1: Campaign Inputs
-st.header("📊 Campaign Inputs")
+st.header("\ud83d\udcca Campaign Inputs")
 col1, col2 = st.columns(2)
 
 with col1:
@@ -118,7 +129,7 @@ with col2:
 st.divider()
 
 # Section 2: Frequency Cap
-st.header("🎯 Frequency Settings")
+st.header("\ud83c\udfaf Frequency Settings")
 col3, col4 = st.columns(2)
 
 with col3:
@@ -139,7 +150,7 @@ with col4:
 st.divider()
 
 # Section 3: Flight Period (Date Picker)
-st.header("📅 Flight Period")
+st.header("\ud83d\uddd3\ufe0f Flight Period")
 col5, col6 = st.columns(2)
 
 today = date.today()
@@ -163,14 +174,13 @@ if start_date > end_date:
     flight_period_days = 0
 else:
     flight_period_days = (end_date - start_date).days + 1
-    st.success(f"📅 Campaign Length: {flight_period_days} days")
-
+    st.success(f"\ud83d\uddd3\ufe0f Campaign Length: {flight_period_days} days")
 
 # --- Prediction Buttons ---
 col7, col8 = st.columns([3, 1])
 
 with col7:
-    calculate = st.button("🔮 Calculate Predictions")
+    calculate = st.button("\ud83d\udd2e Calculate Predictions")
 
 with col8:
     reset_html = """
@@ -188,7 +198,7 @@ with col8:
     }
     </style>
     """
-    reset_clicked = st.button("🔁 Reset Inputs")
+    reset_clicked = st.button("\ud83d\udd01 Reset Inputs")
     st.markdown(reset_html, unsafe_allow_html=True)
 
 # --- Logic ---
@@ -199,17 +209,18 @@ if calculate:
     if impressions > 0 and audience_size > 0 and flight_period_days > 0:
         frequency_cap = calculate_frequency_cap(frequency_input, freq_cap_type, flight_period_days)
 
-        predicted_reach_rf, predicted_frequency_rf, predicted_reach_gam, predicted_frequency_gam = \
+        predicted_reach_rf, predicted_frequency_rf, predicted_reach_gam, predicted_frequency_gam, predicted_reach_svm, predicted_frequency_svm = \
             predict_metrics(impressions, audience_size, flight_period_days, frequency_cap, models)
 
         calculated_frequency_rf = impressions / predicted_reach_rf if predicted_reach_rf else 0
         calculated_frequency_gam = impressions / predicted_reach_gam if predicted_reach_gam else 0
+        calculated_frequency_svm = impressions / predicted_reach_svm if predicted_reach_svm else 0
 
         st.success("Predictions generated successfully.")
 
         # Results
-        st.header("📈 Prediction Results")
-        tab1, tab2 = st.tabs(["🌲 Random Forest", "🎯 GAM Model"])
+        st.header("\ud83d\udcca Prediction Results")
+        tab1, tab2, tab3 = st.tabs(["\ud83c\udf32 Random Forest", "\ud83c\udfaf GAM Model", "\ud83e\uddd0 SVM Model"])
 
         with tab1:
             st.metric("Predicted Reach", f"{predicted_reach_rf:,.2f}")
@@ -220,6 +231,10 @@ if calculate:
             st.metric("Predicted Reach", f"{predicted_reach_gam:,.2f}")
             st.metric("Predicted Frequency", f"{predicted_frequency_gam:.2f}")
             st.metric("Calculated Frequency", f"{calculated_frequency_gam:.2f}")
+
+        with tab3:
+            st.metric("Predicted Reach", f"{predicted_reach_svm:,.2f}")
+            st.metric("Predicted Frequency", f"{predicted_frequency_svm:.2f}")
+            st.metric("Calculated Frequency", f"{calculated_frequency_svm:.2f}")
     else:
         st.warning("Please make sure all fields are filled correctly!")
-
