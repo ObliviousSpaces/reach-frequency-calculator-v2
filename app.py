@@ -196,8 +196,6 @@ if reset_clicked:
     st.rerun()
 
 if calculate:
-    ...
-
     if impressions > 0 and audience_size > 0 and flight_period_days > 0:
         frequency_cap = calculate_frequency_cap(frequency_input, freq_cap_type, flight_period_days)
 
