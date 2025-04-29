@@ -104,18 +104,54 @@ with st.spinner('Loading data and training models...'):
     models = train_models(df)
 st.success('Models ready!')
 
-# --- Defaults ---
+# --- Set Defaults ---
 today = date.today()
 default_end = today + pd.Timedelta(days=29)
+
+# --- Initialize session state defaults ---
+if "Impression Volume" not in st.session_state:
+    st.session_state["Impression Volume"] = 5_000_000
+if "Audience Size" not in st.session_state:
+    st.session_state["Audience Size"] = 1_000_000
+if "Frequency Cap Type" not in st.session_state:
+    st.session_state["Frequency Cap Type"] = "Day"
+if "Frequency Cap Value" not in st.session_state:
+    st.session_state["Frequency Cap Value"] = 3.0
+if "Start Date" not in st.session_state:
+    st.session_state["Start Date"] = today
+if "End Date" not in st.session_state:
+    st.session_state["End Date"] = default_end
+
+# --- Reset Button ---
+if st.button("🔁 Reset Inputs"):
+    st.session_state["Impression Volume"] = 5_000_000
+    st.session_state["Audience Size"] = 1_000_000
+    st.session_state["Frequency Cap Type"] = "Day"
+    st.session_state["Frequency Cap Value"] = 3.0
+    st.session_state["Start Date"] = today
+    st.session_state["End Date"] = default_end
+    st.experimental_rerun()
 
 # --- Campaign Inputs ---
 st.header("📊 Campaign Inputs")
 col1, col2 = st.columns(2)
 
 with col1:
-    impressions = st.number_input("Impression Volume", min_value=0, value=5_000_000, step=10000, key="Impression Volume")
+    impressions = st.number_input(
+        "Impression Volume",
+        min_value=0,
+        value=st.session_state["Impression Volume"],
+        step=10000,
+        key="Impression Volume"
+    )
 with col2:
-    audience_size = st.number_input("Audience Size", min_value=0, value=1_000_000, step=10000, key="Audience Size")
+    audience_size = st.number_input(
+        "Audience Size",
+        min_value=0,
+        value=st.session_state["Audience Size"],
+        step=10000,
+        key="Audience Size"
+    )
 
 st.divider()
 
@@ -124,9 +160,19 @@ st.header("🎯 Frequency Settings")
 col3, col4 = st.columns(2)
 
 with col3:
-    freq_cap_type = st.selectbox("Frequency Cap Type", ["Day", "Week", "Month", "Life"], key="Frequency Cap Type")
+    freq_cap_type = st.selectbox(
+        "Frequency Cap Type",
+        ["Day", "Week", "Month", "Life"],
+        key="Frequency Cap Type"
+    )
 with col4:
-    frequency_input = st.number_input("Frequency Cap Value", min_value=0.0, value=3.0, step=0.5, key="Frequency Cap Value")
+    frequency_input = st.number_input(
+        "Frequency Cap Value",
+        min_value=0.0,
+        value=st.session_state["Frequency Cap Value"],
+        step=0.5,
+        key="Frequency Cap Value"
+    )
 
 st.divider()
 
@@ -135,9 +181,9 @@ st.header("📅 Flight Period")
 col5, col6 = st.columns(2)
 
 with col5:
-    start_date = st.date_input("Start Date", today, key="Start Date")
+    start_date = st.date_input("Start Date", st.session_state["Start Date"], key="Start Date")
 with col6:
-    end_date = st.date_input("End Date", default_end, key="End Date")
+    end_date = st.date_input("End Date", st.session_state["End Date"], key="End Date")
 
 if start_date > end_date:
     st.error("Start Date must be before End Date!")
@@ -146,24 +192,8 @@ else:
     flight_period_days = (end_date - start_date).days + 1
     st.success(f"📅 Campaign Length: {flight_period_days} days")
 
-# --- Buttons ---
-col7, col8 = st.columns([3, 1])
-
-with col7:
-    calculate = st.button("🔮 Calculate Predictions")
-
-with col8:
-    reset_clicked = st.button("🔁 Reset Inputs")
-
-# --- Reset Logic ---
-if reset_clicked:
-    st.session_state["Impression Volume"] = 5_000_000
-    st.session_state["Audience Size"] = 1_000_000
-    st.session_state["Frequency Cap Type"] = "Day"
-    st.session_state["Frequency Cap Value"] = 3.0
-    st.session_state["Start Date"] = today
-    st.session_state["End Date"] = default_end
-    st.rerun()
+# --- Prediction Button ---
+calculate = st.button("🔮 Calculate Predictions")
 
 # --- Calculate Logic ---
 if calculate:
