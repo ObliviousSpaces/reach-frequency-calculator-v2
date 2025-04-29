@@ -14,9 +14,7 @@ def load_data():
     df = pd.read_excel("CombinedData_Final.xlsx", sheet_name="CombinedData")
     df.columns = [col.strip() for col in df.columns]
     df = df.dropna(subset=['Impressions', 'Flight Period', 'Reach', 'Audience Size', 'Frequency', 'Frequency Cap Per Flight'])
-    df[['Impressions', 'Audience Size', 'Flight Period', 'Reach', 'Frequency', 'Frequency Cap Per Flight']] = df[
-        ['Impressions', 'Audience Size', 'Flight Period', 'Reach', 'Frequency', 'Frequency Cap Per Flight']
-    ].apply(pd.to_numeric, errors='coerce')
+    df[['Impressions', 'Audience Size', 'Flight Period', 'Reach', 'Frequency', 'Frequency Cap Per Flight']] = df[['Impressions', 'Audience Size', 'Flight Period', 'Reach', 'Frequency', 'Frequency Cap Per Flight']].apply(pd.to_numeric, errors='coerce')
     df.dropna(inplace=True)
     df['Log_Impressions'] = np.log1p(df['Impressions'])
     df['Log_Audience'] = np.log1p(df['Audience Size'])
@@ -104,40 +102,36 @@ with st.spinner('Loading data and training models...'):
     models = train_models(df)
 st.success('Models ready!')
 
-# --- Defaults ---
-today = date.today()
-default_end = today + pd.Timedelta(days=29)
-
-# --- Campaign Inputs ---
 st.header("📊 Campaign Inputs")
 col1, col2 = st.columns(2)
 
 with col1:
-    impressions = st.number_input("Impression Volume", min_value=0, value=5_000_000, step=10000, key="Impression Volume")
+    impressions = st.number_input("Impression Volume", min_value=0, value=5_000_000, step=10000)
 with col2:
-    audience_size = st.number_input("Audience Size", min_value=0, value=1_000_000, step=10000, key="Audience Size")
+    audience_size = st.number_input("Audience Size", min_value=0, value=1_000_000, step=10000)
 
 st.divider()
 
-# --- Frequency Settings ---
 st.header("🎯 Frequency Settings")
 col3, col4 = st.columns(2)
 
 with col3:
-    freq_cap_type = st.selectbox("Frequency Cap Type", ["Day", "Week", "Month", "Life"], key="Frequency Cap Type")
+    freq_cap_type = st.selectbox("Frequency Cap Type", ["Day", "Week", "Month", "Life"])
 with col4:
-    frequency_input = st.number_input("Frequency Cap Value", min_value=0.0, value=3.0, step=0.5, key="Frequency Cap Value")
+    frequency_input = st.number_input("Frequency Cap Value", min_value=0.0, value=3.0, step=0.5)
 
 st.divider()
 
-# --- Flight Period ---
 st.header("📅 Flight Period")
 col5, col6 = st.columns(2)
 
+today = date.today()
+default_end = today + pd.Timedelta(days=29)
+
 with col5:
-    start_date = st.date_input("Start Date", today, key="Start Date")
+    start_date = st.date_input("Start Date", today)
 with col6:
-    end_date = st.date_input("End Date", default_end, key="End Date")
+    end_date = st.date_input("End Date", default_end)
 
 if start_date > end_date:
     st.error("Start Date must be before End Date!")
@@ -146,7 +140,6 @@ else:
     flight_period_days = (end_date - start_date).days + 1
     st.success(f"📅 Campaign Length: {flight_period_days} days")
 
-# --- Buttons ---
 col7, col8 = st.columns([3, 1])
 
 with col7:
@@ -155,17 +148,9 @@ with col7:
 with col8:
     reset_clicked = st.button("🔁 Reset Inputs")
 
-# --- Reset Logic ---
 if reset_clicked:
-    st.session_state["Impression Volume"] = 5_000_000
-    st.session_state["Audience Size"] = 1_000_000
-    st.session_state["Frequency Cap Type"] = "Day"
-    st.session_state["Frequency Cap Value"] = 3.0
-    st.session_state["Start Date"] = today
-    st.session_state["End Date"] = default_end
     st.rerun()
 
-# --- Calculate Logic ---
 if calculate:
     if impressions > 0 and audience_size > 0 and flight_period_days > 0:
         frequency_cap = calculate_frequency_cap(frequency_input, freq_cap_type, flight_period_days)
